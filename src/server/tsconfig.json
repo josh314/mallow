@@ -1,0 +1,21 @@
+{
+  "compilerOptions": {
+
+    "baseUrl": ".",
+    "paths": {
+      "@types": [ "../types/index" ],
+      "@schemas": [ "../schemas/index" ]
+    },
+    "module": "esnext",
+    "target": "esnext",
+
+    "strict": true,
+
+    "skipLibCheck": true,
+    "moduleResolution": "bundler"
+
+  },
+  "exclude": [
+    "node_modules"
+  ]
+}
