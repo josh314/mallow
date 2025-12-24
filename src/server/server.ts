@@ -3,6 +3,8 @@ import createDebugLogger from 'debug';
 const debug = createDebugLogger( 'mallow' );
 
 import type { Config } from '@schemas';
+import { createRouter } from './routers';
+import { requestLog, requestId } from "./middleware";
 
 class Server {
   private app: express.Express;
@@ -14,7 +16,16 @@ class Server {
   }
 
   public async init(): Promise<Server> {
-    // Initialize middleware, routes, etc. here using this.settings
+
+    this.app.use( requestId );
+    this.app.use( requestLog() );
+
+    this.app.use( express.json() );
+    this.app.use( express.urlencoded( { extended: true } ) );
+
+    const router = createRouter( {} );
+    this.app.use( router );
+
     return this;
   }
 
