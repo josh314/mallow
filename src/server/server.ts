@@ -3,7 +3,7 @@ import createDebugLogger from 'debug';
 const debug = createDebugLogger( 'mallow' );
 
 import type { Config } from '@schemas';
-import { createRouter } from './routers';
+import { createRouter } from './routes';
 import { requestLog, requestId } from "./middleware";
 
 class Server {
@@ -18,7 +18,9 @@ class Server {
   public async init(): Promise<Server> {
 
     this.app.use( requestId );
-    this.app.use( requestLog() );
+    if ( process.env.NODE_ENV !== "test" ) {
+      this.app.use( requestLog() );
+    }
 
     this.app.use( express.json() );
     this.app.use( express.urlencoded( { extended: true } ) );
@@ -27,6 +29,10 @@ class Server {
     this.app.use( router );
 
     return this;
+  }
+
+  public getApp(): express.Express {
+    return this.app;
   }
 
   public listen(): void {
