@@ -1,11 +1,12 @@
 import express from "express";
 import request from "supertest";
 
-import { createHealthRouter } from "./health";
+import packageJson from "../util/package-json";
+import { createHealthRouter, type HealthResponse } from "./health";
 
 describe( "GET /health", () => {
 
-  it( "returns 200 and { status: \"ok\" }", async () => {
+  it( "returns 200 and { status: \"ok\", version: <current_version> }", async () => {
 
     const app = express();
     app.use( "/", createHealthRouter() );
@@ -14,7 +15,12 @@ describe( "GET /health", () => {
       .get( "/" )
       .expect( 200 );
 
-    expect( response.body ).toEqual( { status: "ok" } );
+    const expectedResponse: HealthResponse = {
+      status: "ok",
+      version: packageJson.version,
+    };
+
+    expect( response.body ).toEqual( expectedResponse );
 
   } );
 

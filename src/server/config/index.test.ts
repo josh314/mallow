@@ -1,59 +1,104 @@
+import type { Config } from '@schemas';
 import { getConfig } from './index';
+
+const BASE_ENV = {
+
+  NODE_ENV: 'test',
+  PORT: '9000',
+
+};
+
+const BASE_CONFIG: Config = {
+
+  nodeEnv: 'test',
+  port: 9000,
+
+};
 
 describe( 'getConfig' , () => {
 
   test( 'defaults nodeEnv to `development` when NODE_ENV is undefined' , () => {
 
-    const config = getConfig( {
-
-      PORT: '3000',
-
+    const env = Object.assign( {} , BASE_ENV, {
+      NODE_ENV: undefined,
     } );
 
-    expect( config ).toEqual( {
-
+    const expectedConfig = Object.assign( {} , BASE_CONFIG, {
       nodeEnv: 'development',
-      port: 3000,
-
     } );
 
-  } );
+    const config = getConfig( env );
 
-  test( 'coerces PORT string to number' , () => {
-
-    const config = getConfig( {
-
-      NODE_ENV: 'test',
-      PORT: '8080',
-
-    } );
-
-    expect( config.port ).toBe( 8080 );
-
-  } );
-
-  test( 'throws a flattened error when PORT is missing' , () => {
-
-    expect( () => getConfig( { NODE_ENV: 'test' } ) ).toThrow();
-
-  } );
-
-  test( 'throws when PORT is not a positive int' , () => {
-
-    expect( () => getConfig( { NODE_ENV: 'test', PORT: '0' } ) ).toThrow();
-    expect( () => getConfig( { NODE_ENV: 'test', PORT: '-1' } ) ).toThrow();
-    expect( () => getConfig( { NODE_ENV: 'test', PORT: '1.5' } ) ).toThrow();
+    expect( config ).toEqual( expectedConfig );
 
   } );
 
   test( 'throws when NODE_ENV is not one of development/test/production' , () => {
 
-    expect( () => getConfig( {
 
-      NODE_ENV: 'develorpment',
-      PORT: '3000',
+    const env1 = Object.assign( {} , BASE_ENV, {
+      NODE_ENV: 'debelopment',
+    } );
 
-    } ) ).toThrow();
+    const env2 = Object.assign( {} , BASE_ENV, {
+      NODE_ENV: 'staging',
+    } );
+
+    const env3 = Object.assign( {} , BASE_ENV, {
+      NODE_ENV: 'prod',
+    } );
+
+    expect( () => getConfig( env1 ) ).toThrow();
+    expect( () => getConfig( env2 ) ).toThrow();
+    expect( () => getConfig( env3 ) ).toThrow();
+
+  } );
+
+  test( 'coerces PORT string to number' , () => {
+
+    const env = Object.assign( {} , BASE_ENV, {
+      PORT: '8080',
+    } );
+
+    const expectedConfig = Object.assign( {} , BASE_CONFIG, {
+      port: 8080,
+    } );
+
+    const config = getConfig( env );
+
+    expect( config ).toEqual( expectedConfig );
+
+  } );
+
+  test( 'throws a flattened error when PORT is missing' , () => {
+
+    const env = Object.assign( {} , BASE_ENV, {
+      PORT: undefined,
+    } );
+
+    expect( () => getConfig( env ) ).toThrow();
+
+  } );
+
+  test( 'throws when PORT is not a positive int' , () => {
+
+    const env1 = Object.assign( {} , BASE_ENV, {
+      PORT: 'not-a-number',
+    } );
+    const env2 = Object.assign( {} , BASE_ENV, {
+      PORT: '0',
+    } );
+    const env3 = Object.assign( {} , BASE_ENV, {
+      PORT: '-1',
+    } );
+    const env4 = Object.assign( {} , BASE_ENV, {
+      PORT: '1.5',
+    } );
+
+    expect( () => getConfig( env1 ) ).toThrow();
+    expect( () => getConfig( env2 ) ).toThrow();
+    expect( () => getConfig( env3 ) ).toThrow();
+    expect( () => getConfig( env4 ) ).toThrow();
 
   } );
 
