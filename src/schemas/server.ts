@@ -1,8 +1,9 @@
 import * as z from "zod";
+import { envs } from "@types";
 
 export const configSchema = z.object( {
 
-  nodeEnv: z.enum( [ 'development' , 'test' , 'production' ] ).default( 'development' ),
+  nodeEnv: z.enum( envs ).default( 'development' ),
 
   port: z.coerce.number().int().positive(),
 

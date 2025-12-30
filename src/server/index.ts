@@ -3,7 +3,7 @@ import { createServer } from './server';
 
 async function main() {
 
-  const config = getConfig();
+  const config = getConfig( process.env );
   const server = await createServer( config );
   server.listen();
 

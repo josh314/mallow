@@ -4,6 +4,7 @@ import type { Config } from "@schemas";
 export function makeTestConfig( overrides: Partial<Config> = {} ): Config {
   return {
     port: 0,
+    nodeEnv: 'test',
     ...overrides
   } as Config;
 }

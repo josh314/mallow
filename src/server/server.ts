@@ -18,7 +18,7 @@ class Server {
   public async init(): Promise<Server> {
 
     this.app.use( requestId );
-    if ( process.env.NODE_ENV !== "test" ) {
+    if ( this.config.nodeEnv !== "test" ) {
       this.app.use( requestLog() );
     }
 
