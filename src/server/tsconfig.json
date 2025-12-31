@@ -3,8 +3,8 @@
 
     "baseUrl": ".",
     "paths": {
-      "@types": [ "../types/index" ],
-      "@schemas": [ "../schemas/index" ]
+      "@types": [ "./types/index" ],
+      "@schemas": [ "./schemas/index" ]
     },
     "module": "esnext",
     "target": "esnext",

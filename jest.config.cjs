@@ -24,8 +24,8 @@ module.exports = {
 
   moduleNameMapper: {
 
-    '^@schemas$': '<rootDir>/src/schemas/index.ts',
-    '^@types$': '<rootDir>/src/types/index.ts',
+    '^@schemas$': '<rootDir>/src/server/schemas/index.ts',
+    '^@types$': '<rootDir>/src/server/types/index.ts',
 
   },
 

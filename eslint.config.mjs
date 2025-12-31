@@ -6,7 +6,7 @@ import stylistic from '@stylistic/eslint-plugin';
 /* ---------- shared snippets ------------------------------------------------ */
 
 const jsFiles = ["**/*.{js,mjs,cjs}"];
-const tsFilesServer = ["*.ts", "server/*.ts", "server/**/*.ts" ];
+const tsFilesServer = ["*.ts", "src/server/*.ts", "src/server/**/*.ts" ];
 const tsFilesClient = [ "client/**/*.ts" ];
 const tsFiles = [...tsFilesServer, ...tsFilesClient];
 
@@ -66,7 +66,7 @@ export default [
     languageOptions: {
       parser: tseslint.parser,
       parserOptions: {
-        project: [".src/server/tsconfig.json"],
+        project: ["./src/server/tsconfig.json"],
         tsconfigRootDir: import.meta.dirname,
       },
       globals: globals.node,
