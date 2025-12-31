@@ -1,4 +1,6 @@
 import * as z from "zod";
+
+import { ConfigurationError } from '../util/errors';
 import { configSchema , type Config } from '@schemas';
 
 export function getConfig( env: NodeJS.ProcessEnv = process.env ): Config {
@@ -10,18 +12,16 @@ export function getConfig( env: NodeJS.ProcessEnv = process.env ): Config {
 
   };
 
-
-  const parsed = configSchema.safeParse( raw );
-
-  if( !parsed.success ) {
-
-    const flattened = z.flattenError( parsed.error );
-
-    throw flattened;
-
+  try {
+    return configSchema.parse( raw );
+  }
+  catch( error ) {
+    if( error instanceof z.ZodError ) {
+      const flattened = z.flattenError( error );
+      throw new ConfigurationError( flattened );
+    }
+    throw error;
   }
 
-
-  return parsed.data;
 
 };

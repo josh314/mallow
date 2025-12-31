@@ -4,7 +4,7 @@ const debug = createDebugLogger( 'mallow' );
 
 import type { Config } from '@schemas';
 import { createRouter } from './routes';
-import { requestLog, requestId } from "./middleware";
+import { requestLog, requestId, errorHandler } from "./middleware";
 
 class Server {
   private app: express.Express;
@@ -27,6 +27,8 @@ class Server {
 
     const router = createRouter( {} );
     this.app.use( router );
+
+    this.app.use( errorHandler );
 
     return this;
   }
