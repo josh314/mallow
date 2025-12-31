@@ -39,8 +39,8 @@ export function buildRequestLogEvent( input: RequestLogInput ) {
   const contentLengthHeader = res.getHeader( "content-length" );
   const contentLength =
     typeof contentLengthHeader === "string" ? Number( contentLengthHeader ) :
-    typeof contentLengthHeader === "number" ? contentLengthHeader :
-    undefined;
+      typeof contentLengthHeader === "number" ? contentLengthHeader :
+        undefined;
 
   const forwardedFor = ( req.headers[ "x-forwarded-for" ] as string | undefined );
   const clientIp =
@@ -87,8 +87,6 @@ function onFinishedFactory(
     res.removeListener( "close", onFinished );
 
     const endHr = process.hrtime.bigint();
-
-    const { requestId } = req;
 
     const event = buildRequestLogEvent( {
       req,

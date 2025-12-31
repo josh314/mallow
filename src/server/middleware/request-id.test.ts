@@ -1,7 +1,6 @@
-import * as crypto from "node:crypto";
-
 import type { Response } from "express";
 
+import * as requestIdModule from "./request-id";
 import { ensureRequestId, type RequestForId } from "./request-id";
 
 class MockRes {
@@ -24,15 +23,13 @@ describe( "ensureRequestId" , () => {
 
   test( "generates and sets requestId when missing" , () => {
 
-    jest.spyOn( crypto, "randomUUID" ).mockReturnValue( "abc-123-def-456-ghi" );
-
     const req: RequestForId = {
       headers: {},
     };
 
     const res = new MockRes();
 
-    ensureRequestId( req, res as unknown as Response );
+    ensureRequestId( req, res as unknown as Response, () => "abc-123-def-456-ghi" );
 
     expect( req.requestId ).toBe( "abc-123-def-456-ghi" );
     expect( res.getHeader( "x-request-id" ) ).toBe( "abc-123-def-456-ghi" );
@@ -41,7 +38,7 @@ describe( "ensureRequestId" , () => {
 
   test( "uses existing req.requestId when present" , () => {
 
-    const uuidSpy = jest.spyOn( crypto, "randomUUID" );
+    const idSpy = jest.spyOn( requestIdModule, "generateRequestId" );
 
     const req: RequestForId = {
       requestId: "rid-existing",
@@ -52,7 +49,7 @@ describe( "ensureRequestId" , () => {
 
     ensureRequestId( req, res as unknown as Response );
 
-    expect( uuidSpy ).not.toHaveBeenCalled();
+    expect( idSpy ).not.toHaveBeenCalled();
     expect( req.requestId ).toBe( "rid-existing" );
     expect( res.getHeader( "x-request-id" ) ).toBe( "rid-existing" );
 
@@ -60,7 +57,7 @@ describe( "ensureRequestId" , () => {
 
   test( "uses x-request-id header when req.requestId is missing and sets it on req" , () => {
 
-    const uuidSpy = jest.spyOn( crypto, "randomUUID" );
+    const idSpy = jest.spyOn( requestIdModule, "generateRequestId" );
 
     const req: RequestForId = {
       headers: { "x-request-id": "rid-from-header" },
@@ -70,7 +67,7 @@ describe( "ensureRequestId" , () => {
 
     ensureRequestId( req, res as unknown as Response );
 
-    expect( uuidSpy ).not.toHaveBeenCalled();
+    expect( idSpy ).not.toHaveBeenCalled();
     expect( req.requestId ).toBe( "rid-from-header" );
     expect( res.getHeader( "x-request-id" ) ).toBe( "rid-from-header" );
 

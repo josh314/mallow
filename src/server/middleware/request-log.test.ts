@@ -1,4 +1,5 @@
 import { EventEmitter } from "node:events";
+import type { Request, Response, NextFunction } from "express";
 
 import { buildRequestLogEvent, requestLog, type RequestForLog } from "./request-log";
 
@@ -18,7 +19,7 @@ class MockRes extends EventEmitter {
   }
 }
 
-function makeReq( overrides: Partial<MockReq> = {} ): MockReq {
+function makeReq( overrides: Partial<MockReq> = {} ): Request {
   return {
 
     requestId: "rid-000",
@@ -33,11 +34,13 @@ function makeReq( overrides: Partial<MockReq> = {} ): MockReq {
 
     ...overrides,
 
-  };
+  } as Request;
 }
 
-function makeRes(): MockRes {
-  return new MockRes();
+function makeRes(): Response {
+  const res = new MockRes();
+
+  return res as unknown as Response;
 }
 
 describe( "buildRequestLogEvent" , () => {
@@ -142,9 +145,9 @@ describe( "requestLog middleware wiring" , () => {
 
     const req = makeReq();
     const res = makeRes();
-    const next = jest.fn();
+    const next = jest.fn() as unknown as NextFunction;
 
-    requestLog( { skip: () => true, logger } )( req as any, res as any, next as any );
+    requestLog( { skip: () => true, logger } )( req, res, next );
 
     expect( res.listenerCount( "finish" ) ).toBe( 0 );
     expect( res.listenerCount( "close" ) ).toBe( 0 );
@@ -167,14 +170,19 @@ describe( "requestLog middleware wiring" , () => {
 
     const req = makeReq( { requestId: "rid-123" } );
     const res = makeRes();
+    const next = ( () => {} ) as unknown as NextFunction;
 
-    requestLog( { logger } )( req as any, res as any, ( () => {} ) as any );
+    requestLog( { logger } )( req, res, next );
 
     res.emit( "finish" );
 
     expect( logger ).toHaveBeenCalledTimes( 1 );
 
-    const payload = JSON.parse( logger.mock.calls[ 0 ]![ 0 ] as string );
+    /* eslint-disable @typescript-eslint/no-unsafe-member-access */
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+    const payload: { kind: string; requestId: string } = JSON.parse( logger.mock.calls[ 0 ]![ 0 ] as string );
+    /* eslint-enable @typescript-eslint/no-unsafe-member-access */
+
     expect( payload.kind ).toBe( "access" );
     expect( payload.requestId ).toBe( "rid-123" );
 
