@@ -10,6 +10,20 @@ export function getConfig( env: NodeJS.ProcessEnv = process.env ): Config {
     nodeEnv: env.NODE_ENV,
     port: env.PORT,
 
+    db: {
+
+      databaseUrl: env.DATABASE_URL,
+
+      host: env.POSTGRES_HOST,
+      port: env.POSTGRES_PORT,
+      database: env.POSTGRES_DB,
+      user: env.POSTGRES_USER,
+      password: env.POSTGRES_PASSWORD,
+
+      maxConnections: env.POSTGRES_MAX_CONNECTIONS,
+
+    },
+
   };
 
   try {

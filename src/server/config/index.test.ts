@@ -1,19 +1,24 @@
 import type { Config } from '@schemas';
 import { getConfig } from './index';
+import { makeTestConfig } from './test-config';
 
 const BASE_ENV = {
 
   NODE_ENV: 'test',
   PORT: '9000',
+  DATABASE_URL: 'postgres://user:password@localhost:5432/testdb',
+  POSTGRES_MAX_CONNECTIONS: '10',
 
 };
 
-const BASE_CONFIG: Config = {
-
-  nodeEnv: 'test',
+const BASE_CONFIG: Config = makeTestConfig( {
   port: 9000,
-
-};
+  nodeEnv: 'test',
+  db: {
+    databaseUrl: 'postgres://user:password@localhost:5432/testdb',
+    maxConnections: 10,
+  },
+} );
 
 describe( 'getConfig' , () => {
 

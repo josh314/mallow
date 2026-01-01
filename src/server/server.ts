@@ -1,21 +1,38 @@
+import http from 'http';
+
 import express from 'express';
 import createDebugLogger from 'debug';
 const debug = createDebugLogger( 'mallow' );
 
 import type { Config } from '@schemas';
+
+import type { DbClient } from './db/client';
+
 import { createRouter } from './routes';
 import { requestLog, requestId, errorHandler } from "./middleware";
 
 class Server {
   private app: express.Express;
   private config: Config;
+  private db: DbClient;
+  private httpServer: http.Server | null = null;
 
-  constructor(config: Config) {
+  constructor( config: Config, db: DbClient) {
     this.app = express();
     this.config = config;
+    this.db = db;
   }
 
   public async init(): Promise<Server> {
+
+    try {
+      await this.db.isReady();
+    }
+    catch ( error ) {
+      debug( 'Database connection failed during server initialization: %0', error );
+      await this.db.close().catch( () => {} );
+      throw error;
+    }
 
     this.app.use( requestId() );
     if ( this.config.nodeEnv !== "test" ) {
@@ -37,16 +54,51 @@ class Server {
     return this.app;
   }
 
-  public listen(): void {
-    const port = this.config.port || 8080;
-    this.app.listen(port, () => {
-      debug(`Server is listening on port ${port}`);
+  public listen(): Promise<void> {
+
+    return new Promise( ( resolve, reject ) => {
+
+      const port = this.config.port || 8080;
+      const httpServer = this.app.listen( port );
+
+      this.httpServer = httpServer;
+
+      httpServer.once( "listening", () => {
+
+        const address = httpServer.address();
+        if( typeof address === "string" ) {
+          debug( "Express server listening at address " + address );
+        }
+        else if( address !== null ) {
+          debug( "Express server listening on port " + address.port );
+        }
+
+        resolve();
+
+      } );
+
+      httpServer.on( "error", reject );
+
     });
+
   }
+
+  public async close(): Promise<void> {
+
+    if( this.httpServer ) {
+      await new Promise<void>( ( resolve, reject ) => {
+        this.httpServer!.close( ( err ) => err ? reject( err ) : resolve() );
+      } );
+      this.httpServer = null;
+    }
+
+    await this.db.close();
+  }
+
 }
 
-export async function createServer(config: Config): Promise<Server> {
-  const server = new Server(config);
+export async function createServer(config: Config, db: DbClient): Promise<Server> {
+  const server = new Server( config, db );
   await server.init();
   return server;
 }

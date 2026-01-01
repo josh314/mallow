@@ -1,5 +1,3 @@
-// src/server/server.test.ts
-
 import request from "supertest";
 
 import { createServer } from "./server";

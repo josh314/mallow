@@ -16,14 +16,16 @@
   "main": "index.js",
   "scripts": {
     "lint": "eslint .",
-    "start": "tsx --tsconfig src/server/tsconfig.json -r dotenv/config src/server/index.ts",
-    "test": "jest",
-    "test:watch": "jest --watch",
-    "test:cov": "jest --coverage"
+    "start": "tsx --watch --tsconfig src/server/tsconfig.json -r dotenv/config src/server/index.ts",
+    "db:dev": "docker compose up -d db flyway adminer",
+    "test": "docker compose up -d db_test flyway_test & jest",
+    "test:watch": "docker compose up -d db_test flyway_test & jest --watch",
+    "test:cov": "docker compose up -d db_test flyway_test & jest --coverage"
   },
   "dependencies": {
     "debug": "^4.4.3",
     "express": "^5.2.1",
+    "postgres": "^3.4.7",
     "zod": "^4.2.1"
   },
   "devDependencies": {

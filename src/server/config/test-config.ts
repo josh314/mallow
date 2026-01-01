@@ -3,8 +3,12 @@ import type { Config } from "@schemas";
 
 export function makeTestConfig( overrides: Partial<Config> = {} ): Config {
   return {
-    port: 0,
+    port: 9000,
     nodeEnv: 'test',
+    db: {
+      databaseUrl: 'postgres://user:password@localhost:5432/testdb',
+      maxConnections: 10,
+    },
     ...overrides
   } as Config;
 }
