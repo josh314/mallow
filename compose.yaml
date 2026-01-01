@@ -1,31 +1,43 @@
+x-db-env: &db-env
+  POSTGRES_DB: ${POSTGRES_DB}
+  POSTGRES_USER: ${POSTGRES_USER}
+  POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+
+x-db-common: &db-common
+  image: postgres:18
+  restart: always
+  shm_size: 128mb
+  environment: *db-env
+  healthcheck:
+    test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}" ]
+    interval: 2s
+    timeout: 3s
+    retries: 30
+
+x-flyway-common: &flyway-common
+  image: flyway/flyway:11
+  volumes:
+    - ./db/migrations:/flyway/sql:ro
+
 services:
 
+  # --- Development Services ---
+
   db:
-    image: postgres:18
-    restart: always
-    shm_size: 128mb
-    environment:
-      POSTGRES_DB:  ${POSTGRES_DB}
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    <<: *db-common
     ports:
       - 5432:5432
     volumes:
       - pgdata:/var/lib/postgresql
-    healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}" ]
-      interval: 2s
-      timeout: 3s
-      retries: 30
 
   adminer:
     image: adminer:5
     restart: always
     ports:
-      - ${ADMINER_PORT:-8080}:8080
+      - ${ADMINER_PORT:-18080}:8080
 
   flyway:
-    image: flyway/flyway:11
+    <<: *flyway-common
     depends_on:
       db:
         condition: service_healthy
@@ -35,8 +47,34 @@ services:
       -password=${POSTGRES_PASSWORD}
       -connectRetries=60
       migrate
-    volumes:
-      - ./db/migrations:/flyway/sql:ro
+
+  # --- Test Services ---
+
+  db_test:
+    <<: *db-common
+    environment:
+      POSTGRES_DB: ${POSTGRES_TEST_DB:-${POSTGRES_DB}_test}
+      POSTGRES_USER: ${POSTGRES_TEST_USER:-${POSTGRES_USER}}
+      POSTGRES_PASSWORD: ${POSTGRES_TEST_PASSWORD:-${POSTGRES_PASSWORD}}
+    ports:
+      - "5433:5432"
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_TEST_USER:-${POSTGRES_USER}} -d ${POSTGRES_TEST_DB:-${POSTGRES_DB}_test}" ]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+  flyway_test:
+    <<: *flyway-common
+    depends_on:
+      db_test:
+        condition: service_healthy
+    command: >
+      -url=jdbc:postgresql://db_test:5432/${POSTGRES_TEST_DB:-${POSTGRES_DB}_test}
+      -user=${POSTGRES_TEST_USER:-${POSTGRES_USER}}
+      -password=${POSTGRES_TEST_PASSWORD:-${POSTGRES_PASSWORD}}
+      -connectRetries=60
+      migrate
 
 
 volumes:

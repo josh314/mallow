@@ -1,6 +1,6 @@
 import postgres, { Sql } from "postgres";
 
-import type { DbConfig } from "./db-config";
+import type { DbConfig } from "./config";
 
 export interface DbClient {
   sql: Sql;

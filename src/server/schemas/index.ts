@@ -1,7 +1,7 @@
 import * as z from "zod";
 import { envs } from "@types";
 
-import { dbConfigSchema } from "../db/db-config";
+import { dbConfigSchema } from "../db/config";
 
 /** Schema for contents of package.json */
 export const PackageJson = z.object({

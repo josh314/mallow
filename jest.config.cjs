@@ -22,6 +22,11 @@ module.exports = {
 
   ],
 
+
+  testPathIgnorePatterns: [
+    '\\.int\\.test\\.ts$',
+  ],
+
   moduleNameMapper: {
 
     '^@schemas$': '<rootDir>/src/server/schemas/index.ts',
