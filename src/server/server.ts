@@ -58,7 +58,7 @@ class Server {
 
     return new Promise( ( resolve, reject ) => {
 
-      const port = this.config.port || 8080;
+      const port = this.config.port ?? 8080;
       const httpServer = this.app.listen( port );
 
       this.httpServer = httpServer;
