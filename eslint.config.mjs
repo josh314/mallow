@@ -6,9 +6,13 @@ import stylistic from '@stylistic/eslint-plugin';
 /* ---------- shared snippets ------------------------------------------------ */
 
 const jsFiles = ["**/*.{js,mjs,cjs}"];
-const tsFilesServer = ["*.ts", "src/server/*.ts", "src/server/**/*.ts" ];
+const tsFilesServer = [ "src/server/**/*.ts" ];
 const tsFilesClient = [ "client/**/*.ts" ];
-const tsFiles = [...tsFilesServer, ...tsFilesClient];
+
+const testFilesServer = [ "src/server/**/*.{test,spec}.ts" ];
+const testFiles = [ ...testFilesServer ];
+
+const tsFiles = [ ...tsFilesServer, ...tsFilesClient, ...testFiles ];
 
 const noUnusedVars = [
   "warn",
@@ -63,6 +67,7 @@ export default [
 
   {
     files: tsFilesServer,
+    ignores: testFiles,
     languageOptions: {
       parser: tseslint.parser,
       parserOptions: {
@@ -75,6 +80,7 @@ export default [
 
   {
     files: tsFilesClient,
+    ignores: testFiles,
     languageOptions: {
       parser: tseslint.parser,
       parserOptions: {
@@ -84,7 +90,6 @@ export default [
       globals: globals.node,
     },
   },
-
 
   /* --------- TS recommended presets ------------------------------------
 
@@ -110,6 +115,25 @@ export default [
       semi,
     },
   },
+
+  {
+    files: testFilesServer,
+    languageOptions: {
+      parser: tseslint.parser,
+      parserOptions: {
+        project: ["./src/server/tsconfig.jest.json"],
+        tsconfigRootDir: import.meta.dirname,
+      },
+      globals: globals.node,
+    },
+    rules: {
+      "@typescript-eslint/no-unsafe-assignment": "off",
+      "@typescript-eslint/no-unsafe-call": "off",
+      "@typescript-eslint/no-unsafe-member-access": "off",
+      "@typescript-eslint/require-await": "off",
+    }
+  },
+
 
   /*  project-wide tweaks (optional) ---------------------------------------- */
   // put anything here that *really* must apply to every file, after presets

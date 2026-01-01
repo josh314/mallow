@@ -178,10 +178,7 @@ describe( "requestLog middleware wiring" , () => {
 
     expect( logger ).toHaveBeenCalledTimes( 1 );
 
-    /* eslint-disable @typescript-eslint/no-unsafe-member-access */
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     const payload: { kind: string; requestId: string } = JSON.parse( logger.mock.calls[ 0 ]![ 0 ] as string );
-    /* eslint-enable @typescript-eslint/no-unsafe-member-access */
 
     expect( payload.kind ).toBe( "access" );
     expect( payload.requestId ).toBe( "rid-123" );
