@@ -29,7 +29,7 @@ class Server {
       await this.db.isReady();
     }
     catch ( error ) {
-      debug( 'Database connection failed during server initialization: %0', error );
+      debug( 'Database connection failed during server initialization: %O', error );
       await this.db.close().catch( () => {} );
       throw error;
     }

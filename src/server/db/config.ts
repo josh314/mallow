@@ -17,16 +17,6 @@ function buildDatabaseUrl( args: {
 
 }
 
-const discreteDbSchema = z.object( {
-
-  host: z.string().min( 1 ),
-  port: z.coerce.number().int().positive(),
-  database: z.string().min( 1 ),
-  user: z.string().min( 1 ),
-  password: z.string().min( 1 ),
-
-} );
-
 export const dbConfigSchema = z.object( {
 
   // Prefer DATABASE_URL, but allow discrete vars.
@@ -69,16 +59,14 @@ export const dbConfigSchema = z.object( {
 
     }
 
-    const parsed = discreteDbSchema.parse( {
-      host: v.host,
-      port: v.port,
-      database: v.database,
-      user: v.user,
-      password: v.password,
-    } );
-
     return {
-      databaseUrl: buildDatabaseUrl( parsed ),
+      databaseUrl: buildDatabaseUrl( {
+        host: v.host!,
+        port: v.port!,
+        database: v.database!,
+        user: v.user!,
+        password: v.password!,
+      } ),
       maxConnections: v.maxConnections,
     };
 
