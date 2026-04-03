@@ -5,7 +5,11 @@ Multi-tenant rewrite of `Lot Commander Jr` (LCJ) to be productized as a SaaS for
 
 Source of truth for prior design: `../lot-commander-jr/`.
 
-Working as a solo developer, I will be making all design decisions and implementing all code. A certain amount of leeway can be made for pragmatic tradeoffs.
+## Notes on developer
+
+- this project is projected to be done entirely by a solo developer.
+- scope bets practices and ambitiousness to this constraint, 
+- push back on my assumptions and ideas where appropriate, but also be pragmatic about what can be achieved in a reasonable timeframe by one person.
 
 ## Mallow: Active Decisions
 - multi-tenant architecture with tenant-specific datasets and users. Some shared resources (e.g. product data) may be global, but the core entities are partitioned by tenant. Schema specifics are TBD
@@ -16,7 +20,8 @@ Working as a solo developer, I will be making all design decisions and implement
   - For the core container models -- lots,pallets,shipments -- use a less opinionated schema which is perhaps even modular/recursive, allowing users to create their own container hierarchy with the manifest items attached at arbitrary levels. Use the existing prototype schema as a reference implementation and inspiration.
 - In LCJ, there's presumably some artifacts of functionality removed from the original Lot Commander so flag and bring to my attention anything that appears like legacy cruft before carrying into the new design
 - Soft deletes are retained, implemented with a `deleted_at` timestamp column rather than an `isDeleted` boolean
-
+- Functionality that we are focused on is ingesting, creating and downloading, and managing the lifecycle of the core entities.
+- Data ownership is at row-level. Flag any queries that do not filter by tenant_id or equivalent.
 
 ### Stack
 - DB: PostgreSQL replacing Mongo
@@ -24,6 +29,11 @@ Working as a solo developer, I will be making all design decisions and implement
 - Language: TypeScript throughout
 - Build system: We will replace webpack with something but that's TBD for now.
 - Probably use Docker for local testing, including spinning up a local Postgres instance
+
+### Aspirations
+
+- integrations with ERBs, marketplaces, and shipping providers
+- a platform on which users can share manifests and entities and perhaps even resell inventory to each other
 
 ## Prototype Architectural Reference
 

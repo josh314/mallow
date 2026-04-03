@@ -42,7 +42,7 @@ class Server {
     this.app.use( express.json() );
     this.app.use( express.urlencoded( { extended: true } ) );
 
-    const router = createRouter( {} );
+    const router = createRouter( { db: this.db } );
     this.app.use( router );
 
     this.app.use( errorHandler );

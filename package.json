@@ -18,12 +18,14 @@
     "lint": "eslint .",
     "start": "tsx --watch --tsconfig src/server/tsconfig.json -r dotenv/config src/server/index.ts",
     "db:dev": "docker compose up -d db flyway adminer",
+    "db:seed:dev": "tsx -r dotenv/config db/seeds/dev.ts",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
     "test:int": "jest --config jest.int.config.cjs"
   },
   "dependencies": {
+    "argon2": "^0.44.0",
     "debug": "^4.4.3",
     "express": "^5.2.1",
     "postgres": "^3.4.7",
