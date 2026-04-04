@@ -6,6 +6,7 @@ const BASE_ENV = {
 
   NODE_ENV: 'test',
   PORT: '9000',
+  SESSION_SECRET: 'test-secret',
   DATABASE_URL: 'postgres://user:password@localhost:5432/testdb',
   POSTGRES_MAX_CONNECTIONS: '10',
 

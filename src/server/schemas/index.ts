@@ -15,6 +15,8 @@ export const configSchema = z.object( {
 
   port: z.coerce.number().int().positive(),
 
+  sessionSecret: z.string().min( 1 ),
+
   db: dbConfigSchema,
 
 } );

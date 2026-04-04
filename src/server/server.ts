@@ -2,6 +2,8 @@ import http from 'http';
 
 import express from 'express';
 import createDebugLogger from 'debug';
+import session from 'express-session';
+import connectPgSimple from 'connect-pg-simple';
 const debug = createDebugLogger( 'mallow' );
 
 import type { Config } from '@schemas';
@@ -41,6 +43,21 @@ class Server {
 
     this.app.use( express.json() );
     this.app.use( express.urlencoded( { extended: true } ) );
+
+    const PgStore = connectPgSimple( session );
+    this.app.use( session( {
+      store: this.config.nodeEnv !== 'test'
+        ? new PgStore( { conString: this.config.db.databaseUrl, tableName: 'session' } )
+        : undefined,
+      secret: this.config.sessionSecret,
+      resave: false,
+      saveUninitialized: false,
+      cookie: {
+        httpOnly: true,
+        secure: this.config.nodeEnv === 'production',
+        maxAge: 7 * 24 * 60 * 60 * 1000,
+      },
+    } ) );
 
     const router = createRouter( { db: this.db } );
     this.app.use( router );

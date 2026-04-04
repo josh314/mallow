@@ -78,7 +78,7 @@ describe( "dbConfigSchema", () => {
       throw new Error( "Expected parse to fail" );
     }
 
-    const messages = result.error.issues.map( ( i ) => i.message as string );
+    const messages = result.error.issues.map( ( i ) => i.message );
     expect( messages ).toContain(
       "Provide DATABASE_URL or all of POSTGRES_HOST/PORT/DB/USER/PASSWORD.",
     );
@@ -101,7 +101,7 @@ describe( "dbConfigSchema", () => {
       throw new Error( "Expected parse to fail" );
     }
 
-    const messages = result.error.issues.map( ( i ) => i.message as string );
+    const messages = result.error.issues.map( ( i ) => i.message );
     expect( messages ).toContain(
       "Provide DATABASE_URL or all of POSTGRES_HOST/PORT/DB/USER/PASSWORD.",
     );

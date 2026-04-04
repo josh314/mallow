@@ -9,6 +9,7 @@ export function getConfig( env: NodeJS.ProcessEnv = process.env ): Config {
 
     nodeEnv: env.NODE_ENV,
     port: env.PORT,
+    sessionSecret: env.SESSION_SECRET,
 
     db: {
 

@@ -5,6 +5,7 @@ export function makeTestConfig( overrides: Partial<Config> = {} ): Config {
   return {
     port: 9000,
     nodeEnv: 'test',
+    sessionSecret: 'test-secret',
     db: {
       databaseUrl: 'postgres://user:password@localhost:5432/testdb',
       maxConnections: 10,
