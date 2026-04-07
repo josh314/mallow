@@ -59,3 +59,63 @@ export async function findUserByEmail(
   return rows[ 0 ] ?? null;
 
 }
+
+// NOTE: organizationId should always be provided to enforce row-level data ownership.
+// Only omit when the caller has already verified superadmin access at the route layer.
+export async function findUserById(
+  db: DbClient,
+  userId: string,
+  organizationId?: string,
+): Promise<User | null> {
+
+  const rows = await db.sql<User[]>`
+    SELECT ${ db.sql.unsafe( userColumns ) }
+    FROM users
+    WHERE id = ${ userId }
+      AND deleted_at IS NULL
+    ${ organizationId ? db.sql`AND organization_id = ${ organizationId }` : db.sql`` }
+  `;
+
+  return rows[ 0 ] ?? null;
+
+}
+
+export async function listUsers(
+  db: DbClient,
+  params: { organizationId: string; email?: string; role?: UserRole; limit: number; offset: number },
+): Promise<User[]> {
+
+  const { organizationId, email, role, limit, offset } = params;
+
+  return db.sql<User[]>`
+    SELECT ${ db.sql.unsafe( userColumns ) }
+    FROM users
+    WHERE organization_id = ${ organizationId }
+      AND deleted_at IS NULL
+    ${ email ? db.sql`AND email ILIKE ${ '%' + email + '%' }` : db.sql`` }
+    ${ role  ? db.sql`AND role = ${ role }::user_role`        : db.sql`` }
+    ORDER BY last_name, first_name
+    LIMIT ${ limit } OFFSET ${ offset }
+  `;
+
+}
+
+export async function countUsers(
+  db: DbClient,
+  params: { organizationId: string; email?: string; role?: UserRole },
+): Promise<number> {
+
+  const { organizationId, email, role } = params;
+
+  const rows = await db.sql<{ count: string }[]>`
+    SELECT COUNT(*) AS count
+    FROM users
+    WHERE organization_id = ${ organizationId }
+      AND deleted_at IS NULL
+    ${ email ? db.sql`AND email ILIKE ${ '%' + email + '%' }` : db.sql`` }
+    ${ role  ? db.sql`AND role = ${ role }::user_role`        : db.sql`` }
+  `;
+
+  return parseInt( rows[ 0 ].count, 10 );
+
+}

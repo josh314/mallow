@@ -3,7 +3,7 @@ import { z } from 'zod';
 
 import { userRoles } from '../users/types';
 import { loginBody } from '../routes/auth';
-import { createOrgBody, createUserBody } from '../routes/organizations';
+import { createOrgBody, createUserBody, listOrgsQuery, listUsersQuery } from '../routes/organizations';
 
 extendZodWithOpenApi( z );
 
@@ -19,7 +19,7 @@ registry.registerComponent( 'securitySchemes', 'cookieAuth', {
 
 const cookieAuth = [ { cookieAuth: [] } ];
 
-// ─── Shared response schemas ───────────────────────────────────────────────────
+// ─── Shared schemas ───────────────────────────────────────────────────────────
 
 const ErrorResponse = registry.register( 'ErrorResponse',
   z.object( {
@@ -53,6 +53,9 @@ const PublicUser = registry.register( 'PublicUser',
     deletedAt: z.string().datetime().nullable(),
   } )
 );
+
+const orgIdParam   = z.object( { id: z.string().uuid() } );
+const userIdParams = z.object( { id: z.string().uuid(), userId: z.string().uuid() } );
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -105,6 +108,45 @@ registry.registerPath( {
   },
 } );
 
+// ─── GET /organizations ───────────────────────────────────────────────────────
+
+registry.registerPath( {
+  method: 'get',
+  path: '/organizations',
+  summary: 'List organizations',
+  description: 'Superadmin only.',
+  security: cookieAuth,
+  request: { query: listOrgsQuery },
+  responses: {
+    ...jsonResponse( 200, 'Paginated organization list', z.object( {
+      organizations: z.array( Organization ),
+      total:  z.number().int(),
+      limit:  z.number().int(),
+      offset: z.number().int(),
+    } ) ),
+    ...errorResponse( 400, 'Invalid query params' ),
+    ...errorResponse( 401, 'Not authenticated' ),
+    ...errorResponse( 403, 'Not a superadmin' ),
+  },
+} );
+
+// ─── GET /organizations/:id ───────────────────────────────────────────────────
+
+registry.registerPath( {
+  method: 'get',
+  path: '/organizations/{id}',
+  summary: 'Get an organization',
+  description: 'Superadmin or any member of that organization.',
+  security: cookieAuth,
+  request: { params: orgIdParam },
+  responses: {
+    ...jsonResponse( 200, 'Organization found', z.object( { organization: Organization } ) ),
+    ...errorResponse( 401, 'Not authenticated' ),
+    ...errorResponse( 403, 'Forbidden' ),
+    ...errorResponse( 404, 'Organization not found' ),
+  },
+} );
+
 // ─── POST /organizations ──────────────────────────────────────────────────────
 
 registry.registerPath( {
@@ -120,6 +162,45 @@ registry.registerPath( {
     ...errorResponse( 401, 'Not authenticated' ),
     ...errorResponse( 403, 'Not a superadmin' ),
     ...errorResponse( 409, 'Slug already taken' ),
+  },
+} );
+
+// ─── GET /organizations/:id/users ─────────────────────────────────────────────
+
+registry.registerPath( {
+  method: 'get',
+  path: '/organizations/{id}/users',
+  summary: 'List users in an organization',
+  description: 'Superadmin or owner/manager of that organization.',
+  security: cookieAuth,
+  request: { params: orgIdParam, query: listUsersQuery },
+  responses: {
+    ...jsonResponse( 200, 'Paginated user list', z.object( {
+      users:  z.array( PublicUser ),
+      total:  z.number().int(),
+      limit:  z.number().int(),
+      offset: z.number().int(),
+    } ) ),
+    ...errorResponse( 400, 'Invalid query params' ),
+    ...errorResponse( 401, 'Not authenticated' ),
+    ...errorResponse( 403, 'Forbidden' ),
+  },
+} );
+
+// ─── GET /organizations/:id/users/:userId ─────────────────────────────────────
+
+registry.registerPath( {
+  method: 'get',
+  path: '/organizations/{id}/users/{userId}',
+  summary: 'Get a user',
+  description: 'Superadmin, owner/manager of that organization, or the user themselves.',
+  security: cookieAuth,
+  request: { params: userIdParams },
+  responses: {
+    ...jsonResponse( 200, 'User found', z.object( { user: PublicUser } ) ),
+    ...errorResponse( 401, 'Not authenticated' ),
+    ...errorResponse( 403, 'Forbidden' ),
+    ...errorResponse( 404, 'User not found' ),
   },
 } );
 

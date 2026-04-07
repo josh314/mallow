@@ -5,7 +5,7 @@ Multi-tenant rewrite of `Lot Commander Jr` (LCJ) to be productized as a SaaS for
 
 Source of truth for prior design: `../lot-commander-jr/`.
 
-## Notes on developer
+## Notes on developer team
 
 - this project is projected to be done entirely by a solo developer.
 - scope bets practices and ambitiousness to this constraint, 
@@ -22,6 +22,8 @@ Source of truth for prior design: `../lot-commander-jr/`.
 - Soft deletes are retained, implemented with a `deleted_at` timestamp column rather than an `isDeleted` boolean
 - Functionality that we are focused on is ingesting, creating and downloading, and managing the lifecycle of the core entities.
 - Data ownership is at row-level. Flag any queries that do not filter by tenant_id or equivalent.
+
+- Maintain an OpenAPI spec and ensure changes in the API are reflected in the spec. 
 
 ### Stack
 - DB: PostgreSQL replacing Mongo
