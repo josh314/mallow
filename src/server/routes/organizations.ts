@@ -9,12 +9,12 @@ import { userRoles, roleRank } from '../users/types';
 import { createOrganization } from '../organizations/queries';
 import { createUser } from '../users/queries';
 
-const createOrgBody = z.object( {
+export const createOrgBody = z.object( {
   name: z.string().min( 1 ),
   slug: z.string().min( 1 ).regex( /^[a-z0-9-]+$/, 'slug must be lowercase alphanumeric with hyphens' ),
 } );
 
-const createUserBody = z.object( {
+export const createUserBody = z.object( {
   email: z.string().email(),
   password: z.string().min( 8 ),
   firstName: z.string().min( 1 ),

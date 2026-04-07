@@ -25,6 +25,7 @@
     "test:int": "jest --config jest.int.config.cjs"
   },
   "dependencies": {
+    "@asteasolutions/zod-to-openapi": "^8.5.0",
     "argon2": "^0.44.0",
     "connect-pg-simple": "^10.0.0",
     "debug": "^4.4.3",

@@ -5,7 +5,7 @@ import argon2 from 'argon2';
 import type { DbClient } from '../db/client';
 import { findUserByEmail } from '../users/queries';
 
-const loginBody = z.object( {
+export const loginBody = z.object( {
   email: z.string().email(),
   password: z.string().min( 1 ),
 } );
