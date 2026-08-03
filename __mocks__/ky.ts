@@ -12,3 +12,13 @@ const ky = {
 ky.create.mockReturnValue( ky );
 
 export default ky;
+
+// Minimal stand-in for real ky's HTTPError — just enough shape (`response.status`)
+// for `instanceof` checks and status inspection in tests/production code.
+export class HTTPError extends Error {
+  response: { status: number };
+  constructor( response: { status: number } ) {
+    super( 'HTTPError' );
+    this.response = response;
+  }
+}

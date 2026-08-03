@@ -30,6 +30,9 @@ Track partially-built features here so state isn't lost between sessions. Remove
 - Soft deletes are retained, implemented with a `deleted_at` timestamp column rather than an `isDeleted` boolean
 - Functionality that we are focused on is ingesting, creating and downloading, and managing the lifecycle of the core entities.
 - Data ownership is at row-level. Flag any queries that do not filter by tenant_id or equivalent.
+- The `set_updated_at()` trigger (V1) only fires on `UPDATE`, not `INSERT` — to test staleness/TTL logic, insert a row directly with an explicit `updated_at` rather than insert-then-update (the trigger stomps the update back to `now()`).
+- For JSONB columns via the `postgres` package, wrap values with `db.sql.json(value)`; plain TS interfaces usually need `as unknown as import('postgres').JSONValue` since they lack the index signature `JSONValue` requires.
+- `ky`'s `baseUrl` option does standard WHATWG URL resolution, not path-joining — without a trailing slash, the last path segment is replaced (not extended) by the relative request path (e.g. `.../prod/v1` + `lookup` → `.../prod/lookup`, silently dropping `v1`). Always trailing-slash a `baseUrl` that has a path.
 
 - Maintain an OpenAPI spec and ensure changes in the API are reflected in the spec. 
 
@@ -71,6 +74,11 @@ npm run lint
 
 - `typescript` is capped below latest — `ts-jest`/`typescript-eslint` peer deps gate the ceiling (check `npm view <pkg> peerDependencies` before bumping). TS 7.0's Go-native compiler has no stable programmatic API yet, so those tools can't load it; stay on the 6.x line until they add support.
 - Since TS 6.0, `types` defaults to `[]` instead of auto-discovering everything in `node_modules/@types` — keep it explicit (e.g. `["node", "jest"]`) or globals like `describe`/`jest`/`process` silently stop resolving.
+
+## Testing
+
+- ESM-only npm packages (e.g. `ky`) can't be `require`d by ts-jest and will break any test that transitively imports them, even indirectly. Add a manual mock at root-level `__mocks__/<pkg>.ts` — Jest auto-applies it to node_modules packages with no per-file `jest.mock('<pkg>')` call needed.
+- `@typescript-eslint/no-unbound-method` flags a bare reference to a mocked class method (e.g. `SomeClass.prototype.method as jest.Mock`). Destructure instead: `const { method: methodMock } = SomeClass.prototype as unknown as { method: jest.Mock };`
 
 ## Context
 
