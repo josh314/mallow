@@ -12,7 +12,8 @@ Source of truth for prior design: `../lot-commander-jr/`.
 - push back on my assumptions and ideas where appropriate, but also be pragmatic about what can be achieved in a reasonable timeframe by one person.
 
 ## Mallow: Active Decisions
-- multi-tenant architecture with tenant-specific datasets and users. Some shared resources (e.g. product data) may be global, but the core entities are partitioned by tenant. Schema specifics are TBD
+- multi-tenant architecture with tenant-specific datasets and users. Some shared resources (e.g. product data) may be global, but the core entities are partitioned by tenant.
+- Schema so far (`db/migrations/`): organizations/users, warehouses → warehouse_sections → inventory_locations → inventory_items, and an inventory_ledger/inventory_current_state/inventory_snapshots layer for stock tracking. The lot/pallet/manifest container hierarchy described in the Prototype Architectural Reference below hasn't been built yet — this warehouse/location/ledger layer came first.
 - Load configuration from envvars
 - no ORMs, use raw SQL
 - Don't mirror the prototype's exact DB schema 
@@ -36,6 +37,29 @@ Source of truth for prior design: `../lot-commander-jr/`.
 
 - integrations with ERBs, marketplaces, and shipping providers
 - a platform on which users can share manifests and entities and perhaps even resell inventory to each other
+
+## Commands
+
+```sh
+npm run db:dev        # start Postgres + Flyway migrations + Adminer via Docker Compose
+npm run db:seed:dev   # seed the dev database
+npm start              # dev server (tsx --watch, hot-reloads on source changes; re-run db:dev after adding a migration)
+npm test                # unit tests
+npm run test:watch
+npm run test:cov
+npm run test:int        # integration tests; spins up its own db_test/flyway_test containers on port 5433
+npm run lint
+```
+
+## Architecture
+
+- `src/server/` — Express app. `routes/` (HTTP handlers), `schemas/` (Zod, also source for the generated OpenAPI spec), `organizations/` & `users/` (queries + types, one dir per resource), `middleware/`, `db/` (raw-SQL client, no ORM), `openapi/` (spec generation).
+- `db/migrations/` — Flyway SQL migrations, `V<n>__name.sql`, applied in order on `db:dev`.
+- `docs/api.md` — hand-maintained API contract; keep in sync with route/schema changes.
+
+## Context
+
+Ignore all files in `.tmp/` except ones explicitly referenced in this document — they're personal scratch notes, not part of the codebase.
 
 ## Prototype Architectural Reference
 

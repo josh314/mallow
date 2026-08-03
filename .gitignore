@@ -2,7 +2,7 @@
 .claude/settings.local.json
 
 # temp and scratch files
-__*
+.tmp
 
 # Logs
 *.log
