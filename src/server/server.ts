@@ -25,7 +25,7 @@ class Server {
     this.app = express();
     this.config = config;
     this.db = db;
-    this.productDataService = new ProductDataService( this.db );
+    this.productDataService = new ProductDataService( this.db, { upcItemDbUserKey: this.config.upcItemDbUserKey } );
   }
 
   public async init(): Promise<Server> {

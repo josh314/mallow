@@ -10,6 +10,7 @@ export function makeTestConfig( overrides: Partial<Config> = {} ): Config {
       databaseUrl: 'postgres://user:password@localhost:5432/testdb',
       maxConnections: 10,
     },
+    upcItemDbUserKey: 'test-upcitemdb-key',
     ...overrides
   };
 }

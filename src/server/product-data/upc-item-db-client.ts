@@ -3,12 +3,13 @@ import ky, { type KyInstance } from 'ky';
 import type { DbClient } from '../db/client';
 import type { UpcItemDbItem, UpcItemDbLookupResponse } from './upc-item-db-types';
 
-const PROD_BASE_URL  = 'https://api.upcitemdb.com/prod/v1';
-const TRIAL_BASE_URL = 'https://api.upcitemdb.com/prod/trial';
+// Trailing slash matters: ky's `baseUrl` uses standard URL resolution, so
+// without it the last path segment (`v1`) gets replaced by the relative
+// request path instead of extended.
+const BASE_URL = 'https://api.upcitemdb.com/prod/v1/';
 
 export interface UpcItemDbCredentials {
-  // Omit to fall back to the (rate-limited) trial tier.
-  userKey?: string;
+  userKey: string;
 }
 
 export class UpcItemDbClient {
@@ -20,10 +21,10 @@ export class UpcItemDbClient {
     this.db = db;
 
     this.http = ky.create( {
-      baseUrl: credentials.userKey ? PROD_BASE_URL : TRIAL_BASE_URL,
+      baseUrl: BASE_URL,
       headers: {
         key_type: '3scale',
-        ...( credentials.userKey ? { user_key: credentials.userKey } : {} ),
+        user_key: credentials.userKey,
       },
     } );
   }

@@ -25,6 +25,8 @@ export function getConfig( env: NodeJS.ProcessEnv = process.env ): Config {
 
     },
 
+    upcItemDbUserKey: env.UPCITEMDB_USER_KEY,
+
   };
 
   try {

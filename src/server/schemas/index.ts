@@ -19,6 +19,8 @@ export const configSchema = z.object( {
 
   db: dbConfigSchema,
 
+  upcItemDbUserKey: z.string().min( 1 ),
+
 } );
 
 export type Config = z.infer<typeof configSchema>;
