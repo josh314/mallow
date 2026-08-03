@@ -15,11 +15,13 @@ Source of truth for prior design: `../lot-commander-jr/`.
 Track partially-built features here so state isn't lost between sessions. Remove/update entries as they're completed.
 
 - **Auth**: session-based login/logout is implemented (`routes/auth.ts`, `middleware/require-auth.ts`, argon2 hashing, role/tenant checks in `organizations.ts`) and is in the OpenAPI spec. Missing: signup/registration route (users are currently only created via the admin `POST /organizations/:id/users` endpoint), password reset, login rate-limiting, CSRF protection.
+- **IaC / ECS deploy**: not started — no Terraform/CDK/task-definition files in the repo yet. When we get to it: task definitions should be checked-in IaC (not console-edited) so they're the source of truth for which env vars exist and which are secret-backed, per the envvar/ECS `secrets` decision above. Also need to decide how the underlying secret values are stored/managed in SSM — likely one parameter per secret to match the `secrets` field, but consider whether a JSON blob (parsed by the IaC tooling into individual task-def `secrets` entries, not fetched by the app) is easier to manage/rotate than many discrete parameters.
+- **Session secret rotation**: `getConfig()` (`src/server/config/index.ts`) reads a single `SESSION_SECRET` string and `server.ts` passes it straight to `express-session` — no rotation support. `express-session`'s `secret` option accepts an array (first signs new cookies, all are accepted for verification), same mechanism LCJ used via its comma-delimited SSM `session-secrets` parameter. Worth adopting when IaC/secret storage is designed above, so rotating the secret doesn't invalidate every active session.
 
 ## Mallow: Active Decisions
 - multi-tenant architecture with tenant-specific datasets and users. Some shared resources (e.g. product data) may be global, but the core entities are partitioned by tenant.
 - Schema so far (`db/migrations/`): organizations/users, warehouses → warehouse_sections → inventory_locations → inventory_items, and an inventory_ledger/inventory_current_state/inventory_snapshots layer for stock tracking. The lot/pallet/manifest container hierarchy described in the Prototype Architectural Reference below hasn't been built yet — this warehouse/location/ledger layer came first.
-- Load configuration from envvars
+- Load configuration from envvars. Deploy target is ECS/Fargate; secrets are sourced via the task definition's `secrets` field (SSM Parameter Store `SecureString` or Secrets Manager, one parameter per secret), which injects them as plain env vars before the container starts. The app itself never calls the AWS SDK or SSM at runtime — no in-app config-fetch/blob pattern like LCJ's `server/load-config.js`. Locally, `.env` covers the same shape without touching AWS.
 - no ORMs, use raw SQL
 - Don't mirror the prototype's exact DB schema 
   - manifest items have an extensible field set
