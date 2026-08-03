@@ -12,17 +12,20 @@ import type { DbClient } from './db/client';
 
 import { createRouter } from './routes';
 import { requestLog, requestId, errorHandler } from "./middleware";
+import { ProductDataService } from './product-data/service';
 
 class Server {
   private app: express.Express;
   private config: Config;
   private db: DbClient;
+  private productDataService: ProductDataService;
   private httpServer: http.Server | null = null;
 
   constructor( config: Config, db: DbClient) {
     this.app = express();
     this.config = config;
     this.db = db;
+    this.productDataService = new ProductDataService( this.db );
   }
 
   public async init(): Promise<Server> {
@@ -59,7 +62,7 @@ class Server {
       },
     } ) );
 
-    const router = createRouter( { db: this.db } );
+    const router = createRouter( { db: this.db, productDataService: this.productDataService } );
     this.app.use( router );
 
     this.app.use( errorHandler );

@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { userRoles } from '../users/types';
 import { loginBody } from '../routes/auth';
 import { createOrgBody, createUserBody, listOrgsQuery, listUsersQuery } from '../routes/organizations';
+import { getProductDataQuery } from '../routes/product-data';
 
 extendZodWithOpenApi( z );
 
@@ -56,6 +57,14 @@ const PublicUser = registry.register( 'PublicUser',
 
 const orgIdParam   = z.object( { id: z.string().uuid() } );
 const userIdParams = z.object( { id: z.string().uuid(), userId: z.string().uuid() } );
+
+const ProductData = registry.register( 'ProductData',
+  z.object( {
+    barcode: z.string(),
+    name: z.string(),
+    description: z.string().optional(),
+  } )
+);
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -223,6 +232,22 @@ registry.registerPath( {
     ...errorResponse( 403, 'Wrong org or insufficient role' ),
     ...errorResponse( 404, 'Organization not found' ),
     ...errorResponse( 409, 'Email already in use' ),
+  },
+} );
+
+// ─── GET /product-data ────────────────────────────────────────────────────────
+
+registry.registerPath( {
+  method: 'get',
+  path: '/product-data',
+  summary: 'Look up product data by barcode',
+  security: cookieAuth,
+  request: { query: getProductDataQuery },
+  responses: {
+    ...jsonResponse( 200, 'Product data found', z.object( { productData: ProductData } ) ),
+    ...errorResponse( 400, 'Invalid or missing barcode' ),
+    ...errorResponse( 401, 'Not authenticated' ),
+    ...errorResponse( 404, 'No product data found for barcode' ),
   },
 } );
 
