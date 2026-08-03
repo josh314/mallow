@@ -7,8 +7,6 @@
 
     "target": "es2022",
 
-    "types": [ "jest" , "node" ],
-
     "esModuleInterop": true,
 
   }

@@ -117,7 +117,7 @@ describe( "dbConfigSchema", () => {
       user: "u",
       password: "p",
       maxConnections: "12",
-    } as any );
+    } );
 
     expect( parsed ).toEqual( {
       databaseUrl: "postgres://u:p@db:5432/mydb",

@@ -11,5 +11,5 @@ export function makeTestConfig( overrides: Partial<Config> = {} ): Config {
       maxConnections: 10,
     },
     ...overrides
-  } as Config;
+  };
 }

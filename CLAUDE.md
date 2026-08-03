@@ -11,6 +11,11 @@ Source of truth for prior design: `../lot-commander-jr/`.
 - scope bets practices and ambitiousness to this constraint, 
 - push back on my assumptions and ideas where appropriate, but also be pragmatic about what can be achieved in a reasonable timeframe by one person.
 
+## Work In Progress
+Track partially-built features here so state isn't lost between sessions. Remove/update entries as they're completed.
+
+- **Auth**: session-based login/logout is implemented (`routes/auth.ts`, `middleware/require-auth.ts`, argon2 hashing, role/tenant checks in `organizations.ts`) and is in the OpenAPI spec. Missing: signup/registration route (users are currently only created via the admin `POST /organizations/:id/users` endpoint), password reset, login rate-limiting, CSRF protection.
+
 ## Mallow: Active Decisions
 - multi-tenant architecture with tenant-specific datasets and users. Some shared resources (e.g. product data) may be global, but the core entities are partitioned by tenant.
 - Schema so far (`db/migrations/`): organizations/users, warehouses → warehouse_sections → inventory_locations → inventory_items, and an inventory_ledger/inventory_current_state/inventory_snapshots layer for stock tracking. The lot/pallet/manifest container hierarchy described in the Prototype Architectural Reference below hasn't been built yet — this warehouse/location/ledger layer came first.
@@ -25,6 +30,8 @@ Source of truth for prior design: `../lot-commander-jr/`.
 - Data ownership is at row-level. Flag any queries that do not filter by tenant_id or equivalent.
 
 - Maintain an OpenAPI spec and ensure changes in the API are reflected in the spec. 
+
+- Dependency injection: manual constructor injection through a single composition root (`server.ts`), no DI framework/container. Each module/factory takes its exact named dependencies as constructor/factory params — never a spread/bag of unrelated deps (e.g. don't pass a whole `models` object when a module only needs two of them). No injection through globals or module-level singletons; config and clients always flow in through the constructor. Exception: pure-logic/stateless modules (e.g. utility/constant modules with no external deps) may be `require`/`import`-ed directly rather than threaded through the composition root — there's nothing to inject.
 
 ### Stack
 - DB: PostgreSQL replacing Mongo
@@ -56,6 +63,12 @@ npm run lint
 - `src/server/` — Express app. `routes/` (HTTP handlers), `schemas/` (Zod, also source for the generated OpenAPI spec), `organizations/` & `users/` (queries + types, one dir per resource), `middleware/`, `db/` (raw-SQL client, no ORM), `openapi/` (spec generation).
 - `db/migrations/` — Flyway SQL migrations, `V<n>__name.sql`, applied in order on `db:dev`.
 - `docs/api.md` — hand-maintained API contract; keep in sync with route/schema changes.
+- `src/server/tsconfig.json` is the config VSCode/tsc use by default (nearest `tsconfig.json` wins); `tsconfig.jest.json` only applies to ts-jest and ESLint's type-aware linting of test files. Compiler options needed for editor correctness (e.g. `types`) must live in the base config, not just the jest one.
+
+## TypeScript version
+
+- `typescript` is capped below latest — `ts-jest`/`typescript-eslint` peer deps gate the ceiling (check `npm view <pkg> peerDependencies` before bumping). TS 7.0's Go-native compiler has no stable programmatic API yet, so those tools can't load it; stay on the 6.x line until they add support.
+- Since TS 6.0, `types` defaults to `[]` instead of auto-discovering everything in `node_modules/@types` — keep it explicit (e.g. `["node", "jest"]`) or globals like `describe`/`jest`/`process` silently stop resolving.
 
 ## Context
 
