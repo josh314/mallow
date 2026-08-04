@@ -158,7 +158,7 @@ No authentication required. Safe to call when not logged in.
 
 ### `GET /product-data`
 
-**Auth:** any authenticated user.
+**Auth:** any authenticated user. Results reflect the caller's own tenant overrides merged over the shared source data.
 
 **Query params**
 | Field     | Type   | Rules         |

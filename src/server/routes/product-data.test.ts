@@ -34,7 +34,7 @@ const fakeProductData: ProductData = {
   name: 'Mock Product',
 };
 
-const getProductData = jest.fn<Promise<ProductData | null>, [ string ]>();
+const getProductData = jest.fn<Promise<ProductData | null>, [ string, string ]>();
 const productDataService = { getProductData } as unknown as ProductDataService;
 
 // --- App ---
@@ -87,7 +87,7 @@ describe( 'GET /product-data', () => {
       .expect( 200 );
 
     expect( res.body ).toEqual( { productData: fakeProductData } );
-    expect( getProductData ).toHaveBeenCalledWith( '041598000539' );
+    expect( getProductData ).toHaveBeenCalledWith( 'org-uuid', '041598000539' );
   } );
 
 } );

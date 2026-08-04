@@ -28,7 +28,7 @@ class Server {
     this.config = config;
     this.db = db;
     const upcItemDbClient = new UpcItemDbClient( this.db, { userKey: this.config.upcItemDbUserKey } );
-    this.productDataService = new ProductDataService( [ new UpcItemDbSource( upcItemDbClient ) ] );
+    this.productDataService = new ProductDataService( this.db, [ new UpcItemDbSource( upcItemDbClient ) ] );
   }
 
   public async init(): Promise<Server> {

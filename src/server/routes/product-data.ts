@@ -21,7 +21,7 @@ export function createProductDataRouter( productDataService: ProductDataService 
       return;
     }
 
-    const productData = await productDataService.getProductData( query.data.barcode );
+    const productData = await productDataService.getProductData( req.user.organizationId, query.data.barcode );
     if( !productData ) {
       res.status( 404 ).json( { error: true, message: 'Product data not found' } );
       return;

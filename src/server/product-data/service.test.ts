@@ -1,59 +1,100 @@
 import { ProductDataService } from './service';
 import type { ProductDataSource } from './source';
 import type { ProductData } from './types';
+import type { DbClient } from '../db/client';
+import { findTenantProductData } from './tenant-product-data-queries';
 
-function makeSource( lookupImpl: jest.Mock ): ProductDataSource {
-  return { lookup: lookupImpl };
+jest.mock( './tenant-product-data-queries' );
+
+const findTenantProductDataMock = findTenantProductData as jest.Mock;
+
+function makeSource( result: ProductData | null ): ProductDataSource {
+  return { lookup: jest.fn().mockResolvedValue( result ) };
 }
 
+const fakeDb = {} as DbClient;
 const identifier = { idType: 'upc' as const, value: '041598000539' };
 
-const productData: ProductData = { identifier, name: 'Test Product' };
+beforeEach( () => {
+  findTenantProductDataMock.mockReset();
+  findTenantProductDataMock.mockResolvedValue( null );
+} );
 
 describe( 'ProductDataService', () => {
 
-  it( 'returns the first non-null result from the source cascade', async () => {
+  it( 'returns the cascade result unchanged when there is no tenant override', async () => {
 
-    const firstLookup = jest.fn().mockResolvedValue( productData );
-    const secondLookup = jest.fn().mockResolvedValue( null );
+    const cascadeResult: ProductData = { identifier, name: 'Cascade Name', description: 'Cascade Desc' };
+    const service = new ProductDataService( fakeDb, [ makeSource( cascadeResult ) ] );
 
-    const service = new ProductDataService( [ makeSource( firstLookup ), makeSource( secondLookup ) ] );
-    const result = await service.getProductData( '041598000539' );
+    const result = await service.getProductData( 'org-uuid', '041598000539' );
 
-    expect( result ).toEqual( productData );
-    expect( firstLookup ).toHaveBeenCalledWith( identifier );
-    expect( secondLookup ).not.toHaveBeenCalled();
+    expect( result ).toEqual( { ...cascadeResult, customFields: {} } );
+    expect( findTenantProductDataMock ).toHaveBeenCalledWith( fakeDb, 'org-uuid', identifier );
 
   } );
 
-  it( 'falls through to the next source when the first misses', async () => {
+  it( 'overlays non-null tenant fields on top of the cascade result', async () => {
 
-    const firstLookup = jest.fn().mockResolvedValue( null );
-    const secondLookup = jest.fn().mockResolvedValue( productData );
+    const cascadeResult: ProductData = { identifier, name: 'Cascade Name', description: 'Cascade Desc' };
+    findTenantProductDataMock.mockResolvedValue( {
+      name: null, description: null, brand: 'Tenant Brand', price: 9.99, images: null,
+      customFields: { color: 'red' },
+    } );
 
-    const service = new ProductDataService( [ makeSource( firstLookup ), makeSource( secondLookup ) ] );
-    const result = await service.getProductData( '041598000539' );
+    const service = new ProductDataService( fakeDb, [ makeSource( cascadeResult ) ] );
+    const result = await service.getProductData( 'org-uuid', '041598000539' );
 
-    expect( result ).toEqual( productData );
-    expect( secondLookup ).toHaveBeenCalledWith( identifier );
+    expect( result ).toEqual( {
+      identifier,
+      name: 'Cascade Name',
+      description: 'Cascade Desc',
+      brand: 'Tenant Brand',
+      price: 9.99,
+      customFields: { color: 'red' },
+    } );
 
   } );
 
-  it( 'returns null when every source misses', async () => {
+  it( 'uses tenant data alone when the cascade misses entirely', async () => {
 
-    const service = new ProductDataService( [ makeSource( jest.fn().mockResolvedValue( null ) ) ] );
-    const result = await service.getProductData( '041598000539' );
+    findTenantProductDataMock.mockResolvedValue( {
+      name: 'Tenant-only Name', description: null, brand: null, price: null, images: null,
+      customFields: { note: 'manual entry' },
+    } );
+
+    const service = new ProductDataService( fakeDb, [ makeSource( null ) ] );
+    const result = await service.getProductData( 'org-uuid', '041598000539' );
+
+    expect( result ).toEqual( { identifier, name: 'Tenant-only Name', customFields: { note: 'manual entry' } } );
+
+  } );
+
+  it( 'returns null when neither the cascade nor the tenant override has a name', async () => {
+
+    findTenantProductDataMock.mockResolvedValue( {
+      name: null, description: null, brand: null, price: null, images: null,
+      customFields: { note: 'incomplete' },
+    } );
+
+    const service = new ProductDataService( fakeDb, [ makeSource( null ) ] );
+    const result = await service.getProductData( 'org-uuid', '041598000539' );
 
     expect( result ).toBeNull();
 
   } );
 
-  it( 'returns null when there are no sources', async () => {
+  it( 'still short-circuits the cascade once a source hits', async () => {
 
-    const service = new ProductDataService( [] );
-    const result = await service.getProductData( '041598000539' );
+    const cascadeResult: ProductData = { identifier, name: 'First Source' };
+    const firstSource = makeSource( cascadeResult );
+    const secondSource = makeSource( null );
+    const { lookup: secondLookupMock } = secondSource as unknown as { lookup: jest.Mock };
 
-    expect( result ).toBeNull();
+    const service = new ProductDataService( fakeDb, [ firstSource, secondSource ] );
+    await service.getProductData( 'org-uuid', '041598000539' );
+
+    expect( secondLookupMock ).not.toHaveBeenCalled();
 
   } );
 
