@@ -14,13 +14,14 @@ Source of truth for prior design: `../lot-commander-jr/`.
 ## Work In Progress
 Track partially-built features here so state isn't lost between sessions. Remove/update entries as they're completed.
 
+- **Product identity split**: `inventory_items.product_id` FKs to `products` (V6), which is still a stub — no columns beyond id/timestamps. The actual enriched product data (vendor lookups + tenant overrides) lives in a separate, FK-disconnected system: `src/server/product-data/` keys products by `(idType, identifier)` (upc/ean/gtin/asin/fnsku), cascading through `ProductDataSource`s (e.g. `upc_item_db_cache`) and merging in `tenant_product_data` overrides — join-by-value, no FK to `products` at all. These two models don't connect yet; resolve when `products` gets fleshed out.
 - **Auth**: session-based login/logout is implemented (`routes/auth.ts`, `middleware/require-auth.ts`, argon2 hashing, role/tenant checks in `organizations.ts`) and is in the OpenAPI spec. Missing: signup/registration route (users are currently only created via the admin `POST /organizations/:id/users` endpoint), password reset, login rate-limiting, CSRF protection.
 - **IaC / ECS deploy**: not started — no Terraform/CDK/task-definition files in the repo yet. When we get to it: task definitions should be checked-in IaC (not console-edited) so they're the source of truth for which env vars exist and which are secret-backed, per the envvar/ECS `secrets` decision above. Also need to decide how the underlying secret values are stored/managed in SSM — likely one parameter per secret to match the `secrets` field, but consider whether a JSON blob (parsed by the IaC tooling into individual task-def `secrets` entries, not fetched by the app) is easier to manage/rotate than many discrete parameters.
 - **Session secret rotation**: `getConfig()` (`src/server/config/index.ts`) reads a single `SESSION_SECRET` string and `server.ts` passes it straight to `express-session` — no rotation support. `express-session`'s `secret` option accepts an array (first signs new cookies, all are accepted for verification), same mechanism LCJ used via its comma-delimited SSM `session-secrets` parameter. Worth adopting when IaC/secret storage is designed above, so rotating the secret doesn't invalidate every active session.
 
 ## Mallow: Active Decisions
 - multi-tenant architecture with tenant-specific datasets and users. Some shared resources (e.g. product data) may be global, but the core entities are partitioned by tenant.
-- Schema so far (`db/migrations/`): organizations/users, warehouses → warehouse_sections → inventory_locations → inventory_items, and an inventory_ledger/inventory_current_state/inventory_snapshots layer for stock tracking. The lot/pallet/manifest container hierarchy described in the Prototype Architectural Reference below hasn't been built yet — this warehouse/location/ledger layer came first.
+- Schema so far (`db/migrations/`): organizations/users, warehouses → warehouse_sections → inventory_locations → inventory_items, an inventory_ledger/inventory_current_state/inventory_snapshots layer for stock tracking, and a separate identifier-keyed product-data system (`upc_item_db_cache`, `tenant_product_data`) — see Work In Progress below for how it relates to `products`. The lot/pallet/manifest container hierarchy described in the Prototype Architectural Reference below hasn't been built yet — this warehouse/location/ledger layer came first.
 - Load configuration from envvars. Deploy target is ECS/Fargate; secrets are sourced via the task definition's `secrets` field (SSM Parameter Store `SecureString` or Secrets Manager, one parameter per secret), which injects them as plain env vars before the container starts. The app itself never calls the AWS SDK or SSM at runtime — no in-app config-fetch/blob pattern like LCJ's `server/load-config.js`. Locally, `.env` covers the same shape without touching AWS.
 - no ORMs, use raw SQL
 - Don't mirror the prototype's exact DB schema 
@@ -95,76 +96,7 @@ Ignore all files in `.tmp/` except ones explicitly referenced in this document �
 
 ## Prototype Architectural Reference
 
-This section describes LCJ as it was. It informs design but is not authoritative. Where Mallow diverges, the "Active Decisions" section takes precedence.
+All LCJ-derived reference material — the first-hand physical-workflow narrative (receiving → processing → listing → fulfillment), the entity/lifecycle/API-pattern index, and known corrections to earlier summaries (e.g. Package/Bundle) — now lives in `docs/lot-commander-legacy-workflows.md`. It describes LCJ as it was; it is not authoritative for what Mallow should do — where Mallow diverges, the "Active Decisions" section above takes precedence.
 
-### Core Entities & Relationships
-
-- **Lot** → central unit of sale; referenced one `InventoryPallet` OR one `Manifest` (mutually exclusive), plus zero-to-many third-party manifests
-- **Manifest** → structured product-quantity list; stored separately from lots; could be reused across lots
-- **InventoryPallet** → physical pallet; belonged to one `IncomingShipment`; could be split into child pallets (tracked via `splitFrom` parent reference)
-- **IncomingShipment** → tracked expected vs. received pallets; also owned `packages` (high-value individual items)
-- **Package** → individual item from a shipment; could contain `Bundle` records
-- **Bundle** → curated grouping of items (e.g., cosmetics sub-types); packed into a package
-
-### Lifecycle State Machines
-
-**Lot:** `In Preparation → Ready → Reviewed → Listed → Sold → Shipped` (also `Error → Decommissioned`)
-- `Shipped` could revert to `Sold` (unship action)
-
-**Pallet:** additive boolean flags — `isReceived`, `isRepacked`, `isBrokendown` — not a strict FSM
-
-**Package:** `created → isInstantiated → isFulfilled` (reversible)
-
-**Bundle:** `created → isPacked` (reversible)
-
-### Business Logic Invariants
-
-- **Lot number** was assigned via an atomic counter (find-and-modify); lot numbers were never reused or reset
-- **`packagingType`** was a computed field derived from `shippingItems` dimensions in a pre-save hook; it was never stored as user input
-- **`priceValuePercentage`** defaulted to 20% at lot, pallet, and shipment level independently; negative values were coerced to the default
-- **`isDeleted`** was set by a pre-save hook to `false` if absent; all queries filtered deleted records
-- **Shipment-level cascade:** setting `category`, `condition`, or `priceValuePercentage` on a shipment propagated to all `palletsExpected` entries at write time (not read time)
-- **Shipment `hasProblem`** was derived by diffing `palletsExpected[].handle` against received pallet handles — it was not a stored flag. Individual pallet `hasProblem` flags were separate and covered damage/anomalies
-- **Pallet split was two-phase:** first creating `splitGroups` sub-documents (reversible), then committing to instantiate each as a child `InventoryPallet` (irreversible)
-- **Unmanifested lots:** `unmanifested: true` with manually entered `totalUnits` was a valid first-class lot type, not an error state
-
-### API Design Patterns
-
-Standard CRUD per resource:
-```
-GET    /resource            → list + filtering
-GET    /resource/count      → count for pagination
-GET    /resource/:id        → by DB id
-GET    /resource/by-handle/:handle → by slug
-POST   /resource            → create
-PATCH  /resource/:id        → partial update
-DELETE /resource/:id        → soft delete
-```
-
-**State transitions used action sub-routes** rather than PATCH on status field:
-```
-POST /lots/:id/mark-as-sold       POST /lots/:id/unship
-POST /pallets/:id/breakdown       POST /pallets/:id/repack
-POST /pallets/:id/split           POST /packages/:id/instantiate
-POST /receiving/:id/receive       POST /receiving/:id/close
-```
-
-**Response envelope:** `{ [resourceName]: Object|Array }` on success; `{ error: true, code, message? }` on failure. `message` was only present on client/auth errors.
-
-**Auth:** session-based; a cookie carried `{ _id, firstName, lastName, roles, permissions }`. Permission checks happened in routing middleware before business logic. Site announcements were delivered as a cookie at login (snapshot — not live-updated).
-
-**Media** was a two-phase upload: POST returned a record with `isProcessing: true`; after async processing the record gained an `s3` location. Lot media was managed via lot sub-routes (`/lots/:id/media/:type`).
-
-**Manifest files** lived in object storage (not the DB). The API was a thin proxy with path passthrough (`GET/PUT /manifests/*`). The `Manifest` DB record (structured product-quantity pairs) was distinct from the raw file.
-
-**Product data lookup** (`GET /product-data?barcode=`) executed a cascading chain: primary external API → secondary API → internal cache → manual override records. The chain was an implementation detail; callers always received the same response shape regardless of which source resolved it.
-
-### Non-Obvious Decisions
-
-- **Lot number vs. handle:** lot numbers were sequential integers (human/verbal use); handles were slugs (URL use). The two were kept distinct
-- **Manifests were first-class:** stored in their own collection, not embedded in lots, enabling reuse and an independent lifecycle
-- **Third-party manifests were additive:** `thirdPartyManifests[]` supplemented rather than replaced the primary `manifestId`
-- **Audit events were fire-and-forget:** event write failures did not block the primary operation
-- **Counters were atomic:** find-and-modify semantics were used; a read-then-write approach would cause duplicate lot numbers under concurrency
-- Configuration (including loading of secrets) was done via a non-versioned document `server/config.js` 
+Past summaries of LCJ prototype behavior in this doc (and in `docs/lot-commander-legacy-workflows.md`) have contained factual errors not supported by the actual code — verify against `../lot-commander-jr/server/models/` before repeating or extending a prototype claim, don't just trust the existing summary.
 
