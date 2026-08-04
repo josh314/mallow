@@ -5,7 +5,7 @@ import type { ProductDataService } from '../product-data/service';
 import { requireAuth } from '../middleware/require-auth';
 
 export const getProductDataQuery = z.object( {
-  barcode: z.string().min( 1 ).regex( /^\d+$/, 'barcode must be numeric' ),
+  barcode: z.string().min( 1 ),
 } );
 
 export function createProductDataRouter( productDataService: ProductDataService ): Router {

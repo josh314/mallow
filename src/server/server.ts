@@ -13,6 +13,8 @@ import type { DbClient } from './db/client';
 import { createRouter } from './routes';
 import { requestLog, requestId, errorHandler } from "./middleware";
 import { ProductDataService } from './product-data/service';
+import { UpcItemDbClient } from './product-data/upc-item-db-client';
+import { UpcItemDbSource } from './product-data/upc-item-db-source';
 
 class Server {
   private app: express.Express;
@@ -25,7 +27,8 @@ class Server {
     this.app = express();
     this.config = config;
     this.db = db;
-    this.productDataService = new ProductDataService( this.db, { upcItemDbUserKey: this.config.upcItemDbUserKey } );
+    const upcItemDbClient = new UpcItemDbClient( this.db, { userKey: this.config.upcItemDbUserKey } );
+    this.productDataService = new ProductDataService( [ new UpcItemDbSource( upcItemDbClient ) ] );
   }
 
   public async init(): Promise<Server> {

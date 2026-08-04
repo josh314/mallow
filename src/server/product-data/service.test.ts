@@ -1,52 +1,57 @@
-import type { DbClient } from '../db/client';
 import { ProductDataService } from './service';
-import { UpcItemDbClient } from './upc-item-db-client';
-import type { UpcItemDbItem } from './upc-item-db-types';
+import type { ProductDataSource } from './source';
+import type { ProductData } from './types';
 
-jest.mock( './upc-item-db-client' );
-
-const { lookup: lookupMock } = UpcItemDbClient.prototype as unknown as { lookup: jest.Mock };
-
-const fakeDb = {} as DbClient;
-
-function makeService(): ProductDataService {
-  return new ProductDataService( fakeDb, { upcItemDbUserKey: 'test-upcitemdb-key' } );
+function makeSource( lookupImpl: jest.Mock ): ProductDataSource {
+  return { lookup: lookupImpl };
 }
+
+const identifier = { idType: 'upc' as const, value: '041598000539' };
+
+const productData: ProductData = { identifier, name: 'Test Product' };
 
 describe( 'ProductDataService', () => {
 
-  test( 'getProductData maps a UPCItemDB item to ProductData', async () => {
+  it( 'returns the first non-null result from the source cascade', async () => {
 
-    const item: UpcItemDbItem = { upc: '041598000539', title: 'Test Product', description: 'A test product' };
-    lookupMock.mockResolvedValueOnce( item );
+    const firstLookup = jest.fn().mockResolvedValue( productData );
+    const secondLookup = jest.fn().mockResolvedValue( null );
 
-    const result = await makeService().getProductData( '041598000539' );
+    const service = new ProductDataService( [ makeSource( firstLookup ), makeSource( secondLookup ) ] );
+    const result = await service.getProductData( '041598000539' );
 
-    expect( lookupMock ).toHaveBeenCalledWith( '041598000539' );
-    expect( result ).toEqual( {
-      barcode: '041598000539',
-      name: 'Test Product',
-      description: 'A test product',
-    } );
+    expect( result ).toEqual( productData );
+    expect( firstLookup ).toHaveBeenCalledWith( identifier );
+    expect( secondLookup ).not.toHaveBeenCalled();
 
   } );
 
-  test( 'getProductData returns null when no item is found', async () => {
+  it( 'falls through to the next source when the first misses', async () => {
 
-    lookupMock.mockResolvedValueOnce( null );
+    const firstLookup = jest.fn().mockResolvedValue( null );
+    const secondLookup = jest.fn().mockResolvedValue( productData );
 
-    const result = await makeService().getProductData( '000000000000' );
+    const service = new ProductDataService( [ makeSource( firstLookup ), makeSource( secondLookup ) ] );
+    const result = await service.getProductData( '041598000539' );
+
+    expect( result ).toEqual( productData );
+    expect( secondLookup ).toHaveBeenCalledWith( identifier );
+
+  } );
+
+  it( 'returns null when every source misses', async () => {
+
+    const service = new ProductDataService( [ makeSource( jest.fn().mockResolvedValue( null ) ) ] );
+    const result = await service.getProductData( '041598000539' );
 
     expect( result ).toBeNull();
 
   } );
 
-  test( 'getProductData returns null when the item has no title', async () => {
+  it( 'returns null when there are no sources', async () => {
 
-    const item: UpcItemDbItem = { upc: '041598000539' };
-    lookupMock.mockResolvedValueOnce( item );
-
-    const result = await makeService().getProductData( '041598000539' );
+    const service = new ProductDataService( [] );
+    const result = await service.getProductData( '041598000539' );
 
     expect( result ).toBeNull();
 

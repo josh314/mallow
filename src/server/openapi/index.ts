@@ -58,11 +58,22 @@ const PublicUser = registry.register( 'PublicUser',
 const orgIdParam   = z.object( { id: z.string().uuid() } );
 const userIdParams = z.object( { id: z.string().uuid(), userId: z.string().uuid() } );
 
+const ProductIdentifierSchema = registry.register( 'ProductIdentifier',
+  z.object( {
+    idType: z.enum( [ 'upc', 'ean', 'gtin', 'asin', 'fnsku' ] ),
+    value: z.string(),
+  } )
+);
+
 const ProductData = registry.register( 'ProductData',
   z.object( {
-    barcode: z.string(),
+    identifier: ProductIdentifierSchema,
     name: z.string(),
     description: z.string().optional(),
+    brand: z.string().optional(),
+    price: z.number().optional(),
+    images: z.array( z.string() ).optional(),
+    customFields: z.record( z.string(), z.unknown() ).optional(),
   } )
 );
 
@@ -240,12 +251,12 @@ registry.registerPath( {
 registry.registerPath( {
   method: 'get',
   path: '/product-data',
-  summary: 'Look up product data by barcode',
+  summary: 'Look up product data by barcode, ASIN, or FNSKU',
   security: cookieAuth,
   request: { query: getProductDataQuery },
   responses: {
     ...jsonResponse( 200, 'Product data found', z.object( { productData: ProductData } ) ),
-    ...errorResponse( 400, 'Invalid or missing barcode' ),
+    ...errorResponse( 400, 'Missing barcode' ),
     ...errorResponse( 401, 'Not authenticated' ),
     ...errorResponse( 404, 'No product data found for barcode' ),
   },

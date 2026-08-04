@@ -163,15 +163,19 @@ No authentication required. Safe to call when not logged in.
 **Query params**
 | Field     | Type   | Rules         |
 |-----------|--------|---------------|
-| `barcode` | string | non-empty, numeric |
+| `barcode` | string | non-empty — UPC/EAN/GTIN, ASIN, or FNSKU; type is auto-detected |
 
 **Response `200`**
 ```json
 {
   "productData": {
-    "barcode": "string",
+    "identifier": { "idType": "upc | ean | gtin | asin | fnsku", "value": "string" },
     "name": "string",
-    "description": "string (optional)"
+    "description": "string (optional)",
+    "brand": "string (optional)",
+    "price": "number (optional)",
+    "images": ["string"] ,
+    "customFields": { "...": "..." }
   }
 }
 ```
@@ -179,6 +183,6 @@ No authentication required. Safe to call when not logged in.
 **Errors**
 | Status | Condition |
 |--------|-----------|
-| `400`  | Missing or non-numeric barcode |
+| `400`  | Missing barcode |
 | `401`  | Not authenticated |
 | `404`  | No product data found for barcode |

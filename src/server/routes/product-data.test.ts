@@ -30,7 +30,7 @@ beforeEach( () => {
 const employee: SessionUser = { id: 'user-uuid', organizationId: 'org-uuid', role: 'employee', isSuperadmin: false };
 
 const fakeProductData: ProductData = {
-  barcode: '041598000539',
+  identifier: { idType: 'upc', value: '041598000539' },
   name: 'Mock Product',
 };
 
@@ -64,14 +64,6 @@ describe( 'GET /product-data', () => {
     mockSessionUser = employee;
     await request( app )
       .get( '/product-data' )
-      .expect( 400 );
-  } );
-
-  it( 'returns 400 when barcode is non-numeric', async () => {
-    mockSessionUser = employee;
-    await request( app )
-      .get( '/product-data' )
-      .query( { barcode: 'not-a-barcode' } )
       .expect( 400 );
   } );
 
