@@ -20,7 +20,7 @@ export function createRouter( options: RouterOptions ): express.Router {
   router.use( '/openapi.json', createOpenApiRouter() );
   router.use( '/auth', createAuthRouter( options.db ) );
   router.use( '/organizations', createOrganizationRouter( options.db ) );
-  router.use( '/product-data', createProductDataRouter( options.productDataService ) );
+  router.use( '/product-data', createProductDataRouter( options.productDataService, options.db ) );
 
   return router;
 }

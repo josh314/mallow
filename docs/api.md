@@ -186,3 +186,91 @@ No authentication required. Safe to call when not logged in.
 | `400`  | Missing barcode |
 | `401`  | Not authenticated |
 | `404`  | No product data found for barcode |
+
+---
+
+### `GET /product-data/overrides`
+
+**Auth:** any authenticated user, scoped to their organization.
+
+**Query params**
+| Field    | Type   | Rules |
+|----------|--------|-------|
+| `limit`  | number | 1–100, default 20 |
+| `offset` | number | ≥0, default 0 |
+
+**Response `200`**
+```json
+{ "overrides": [ { "id": "uuid", "organizationId": "uuid", "idType": "upc | ean | gtin | asin | fnsku", "identifier": "string", "name": "string | null", "description": "string | null", "brand": "string | null", "price": "number | null", "images": ["string"], "customFields": {}, "createdAt": "ISO date", "updatedAt": "ISO date", "deletedAt": "ISO date | null" } ], "total": 0, "limit": 20, "offset": 0 }
+```
+
+**Errors**
+| Status | Condition |
+|--------|-----------|
+| `400`  | Invalid query params |
+| `401`  | Not authenticated |
+
+---
+
+### `POST /product-data/overrides`
+
+**Auth:** any authenticated user, scoped to their organization.
+
+**Request body**
+| Field          | Type   | Rules |
+|----------------|--------|-------|
+| `identifier`   | string | non-empty; type is auto-detected |
+| `name`         | string | optional |
+| `description`  | string | optional |
+| `brand`        | string | optional |
+| `price`        | number | optional, ≥0 |
+| `images`       | string[] | optional |
+| `customFields` | object | optional |
+
+At least one of `name`/`description`/`brand`/`price`/`images`/`customFields` is required.
+
+**Response `201`**
+```json
+{ "override": { "...": "same shape as GET /product-data/overrides items" } }
+```
+
+**Errors**
+| Status | Condition |
+|--------|-----------|
+| `400`  | Invalid body, or no override fields provided |
+| `401`  | Not authenticated |
+| `409`  | An override for this identifier already exists |
+
+---
+
+### `PATCH /product-data/overrides/:id`
+
+**Auth:** any authenticated user, scoped to their organization.
+
+**Request body:** same optional fields as `POST`, minus `identifier`. At least one required.
+
+**Response `200`**
+```json
+{ "override": { "...": "same shape as GET /product-data/overrides items" } }
+```
+
+**Errors**
+| Status | Condition |
+|--------|-----------|
+| `400`  | Invalid body, or no fields provided |
+| `401`  | Not authenticated |
+| `404`  | Override not found in caller's org |
+
+---
+
+### `DELETE /product-data/overrides/:id`
+
+**Auth:** any authenticated user, scoped to their organization.
+
+**Response `204`** — no body.
+
+**Errors**
+| Status | Condition |
+|--------|-----------|
+| `401`  | Not authenticated |
+| `404`  | Override not found in caller's org |

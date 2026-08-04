@@ -4,7 +4,12 @@ import { z } from 'zod';
 import { userRoles } from '../users/types';
 import { loginBody } from '../routes/auth';
 import { createOrgBody, createUserBody, listOrgsQuery, listUsersQuery } from '../routes/organizations';
-import { getProductDataQuery } from '../routes/product-data';
+import {
+  getProductDataQuery,
+  listOverridesQuery,
+  createOverrideBody,
+  updateOverrideBody,
+} from '../routes/product-data';
 
 extendZodWithOpenApi( z );
 
@@ -259,6 +264,93 @@ registry.registerPath( {
     ...errorResponse( 400, 'Missing barcode' ),
     ...errorResponse( 401, 'Not authenticated' ),
     ...errorResponse( 404, 'No product data found for barcode' ),
+  },
+} );
+
+const TenantProductData = registry.register( 'TenantProductData',
+  z.object( {
+    id: z.string().uuid(),
+    organizationId: z.string().uuid(),
+    idType: z.enum( [ 'upc', 'ean', 'gtin', 'asin', 'fnsku' ] ),
+    identifier: z.string(),
+    name: z.string().nullable(),
+    description: z.string().nullable(),
+    brand: z.string().nullable(),
+    price: z.number().nullable(),
+    images: z.array( z.string() ).nullable(),
+    customFields: z.record( z.string(), z.unknown() ),
+    createdAt: z.string().datetime(),
+    updatedAt: z.string().datetime(),
+    deletedAt: z.string().datetime().nullable(),
+  } )
+);
+
+const overrideIdParam = z.object( { id: z.string().uuid() } );
+
+// ─── GET /product-data/overrides ───────────────────────────────────────────────
+
+registry.registerPath( {
+  method: 'get',
+  path: '/product-data/overrides',
+  summary: 'List the caller\'s tenant product-data overrides',
+  security: cookieAuth,
+  request: { query: listOverridesQuery },
+  responses: {
+    ...jsonResponse( 200, 'Paginated override list', z.object( {
+      overrides: z.array( TenantProductData ),
+      total: z.number().int(),
+      limit: z.number().int(),
+      offset: z.number().int(),
+    } ) ),
+    ...errorResponse( 400, 'Invalid query params' ),
+    ...errorResponse( 401, 'Not authenticated' ),
+  },
+} );
+
+// ─── POST /product-data/overrides ──────────────────────────────────────────────
+
+registry.registerPath( {
+  method: 'post',
+  path: '/product-data/overrides',
+  summary: 'Create a tenant product-data override',
+  security: cookieAuth,
+  request: { body: jsonBody( createOverrideBody ) },
+  responses: {
+    ...jsonResponse( 201, 'Override created', z.object( { override: TenantProductData } ) ),
+    ...errorResponse( 400, 'Invalid request body' ),
+    ...errorResponse( 401, 'Not authenticated' ),
+    ...errorResponse( 409, 'An override for this identifier already exists' ),
+  },
+} );
+
+// ─── PATCH /product-data/overrides/:id ─────────────────────────────────────────
+
+registry.registerPath( {
+  method: 'patch',
+  path: '/product-data/overrides/{id}',
+  summary: 'Update a tenant product-data override',
+  security: cookieAuth,
+  request: { params: overrideIdParam, body: jsonBody( updateOverrideBody ) },
+  responses: {
+    ...jsonResponse( 200, 'Override updated', z.object( { override: TenantProductData } ) ),
+    ...errorResponse( 400, 'Invalid request body' ),
+    ...errorResponse( 401, 'Not authenticated' ),
+    ...errorResponse( 404, 'Override not found' ),
+  },
+} );
+
+// ─── DELETE /product-data/overrides/:id ────────────────────────────────────────
+
+registry.registerPath( {
+  method: 'delete',
+  path: '/product-data/overrides/{id}',
+  summary: 'Soft-delete a tenant product-data override',
+  security: cookieAuth,
+  request: { params: overrideIdParam },
+  responses: {
+    204: { description: 'Override deleted' },
+    ...errorResponse( 401, 'Not authenticated' ),
+    ...errorResponse( 404, 'Override not found' ),
   },
 } );
 
