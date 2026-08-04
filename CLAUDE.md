@@ -8,7 +8,7 @@ Source of truth for prior design: `../lot-commander-jr/`.
 ## Notes on developer team
 
 - this project is projected to be done entirely by a solo developer.
-- scope bets practices and ambitiousness to this constraint, 
+- scope best practices and ambitiousness to this constraint, 
 - push back on my assumptions and ideas where appropriate, but also be pragmatic about what can be achieved in a reasonable timeframe by one person.
 
 ## Work In Progress
@@ -32,6 +32,8 @@ Track partially-built features here so state isn't lost between sessions. Remove
 - Data ownership is at row-level. Flag any queries that do not filter by tenant_id or equivalent.
 - The `set_updated_at()` trigger (V1) only fires on `UPDATE`, not `INSERT` — to test staleness/TTL logic, insert a row directly with an explicit `updated_at` rather than insert-then-update (the trigger stomps the update back to `now()`).
 - For JSONB columns via the `postgres` package, wrap values with `db.sql.json(value)`; plain TS interfaces usually need `as unknown as import('postgres').JSONValue` since they lack the index signature `JSONValue` requires.
+- `postgres` returns `NUMERIC` columns as strings, not numbers — cast in the column list (`price::float8 AS price`) to get a JS number back.
+- For raw-SQL partial updates (PATCH), build each `SET` column as `col = ${ patch.col !== undefined ? patch.col : db.sql\`col\` }` — falls back to the column's current value when a field wasn't supplied, avoiding COALESCE or a dynamic-object builder.
 - `ky`'s `baseUrl` option does standard WHATWG URL resolution, not path-joining — without a trailing slash, the last path segment is replaced (not extended) by the relative request path (e.g. `.../prod/v1` + `lookup` → `.../prod/lookup`, silently dropping `v1`). Always trailing-slash a `baseUrl` that has a path.
 
 - Maintain an OpenAPI spec and ensure changes in the API are reflected in the spec. 
@@ -63,6 +65,8 @@ npm run test:int        # integration tests; spins up its own db_test/flyway_tes
 npm run lint
 ```
 
+`.env` is gitignored, so a fresh git worktree won't have it — copy it from the main checkout before running `db:dev`/`test:int` there.
+
 ## Architecture
 
 - `src/server/` — Express app. `routes/` (HTTP handlers), `schemas/` (Zod, also source for the generated OpenAPI spec), `organizations/` & `users/` (queries + types, one dir per resource), `middleware/`, `db/` (raw-SQL client, no ORM), `openapi/` (spec generation).
@@ -74,11 +78,16 @@ npm run lint
 
 - `typescript` is capped below latest — `ts-jest`/`typescript-eslint` peer deps gate the ceiling (check `npm view <pkg> peerDependencies` before bumping). TS 7.0's Go-native compiler has no stable programmatic API yet, so those tools can't load it; stay on the 6.x line until they add support.
 - Since TS 6.0, `types` defaults to `[]` instead of auto-discovering everything in `node_modules/@types` — keep it explicit (e.g. `["node", "jest"]`) or globals like `describe`/`jest`/`process` silently stop resolving.
+- Zod v4's `z.record()` requires two args — `z.record(keySchema, valueSchema)` — v3's single-arg `z.record(valueSchema)` no longer works.
 
 ## Testing
 
 - ESM-only npm packages (e.g. `ky`) can't be `require`d by ts-jest and will break any test that transitively imports them, even indirectly. Add a manual mock at root-level `__mocks__/<pkg>.ts` — Jest auto-applies it to node_modules packages with no per-file `jest.mock('<pkg>')` call needed.
 - `@typescript-eslint/no-unbound-method` flags a bare reference to a mocked class method (e.g. `SomeClass.prototype.method as jest.Mock`). Destructure instead: `const { method: methodMock } = SomeClass.prototype as unknown as { method: jest.Mock };`
+
+## Subagent-Driven Development
+
+- When using subagent-driven-development with a worktree, spot-check after each task that the base branch (e.g. `dev`) hasn't gained unexpected commits (`git log <base> -3`) — an implementer subagent doesn't reliably honor a "work from `<worktree path>`" instruction.
 
 ## Context
 
